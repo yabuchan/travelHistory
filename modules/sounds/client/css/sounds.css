@@ -1,0 +1,14 @@
+.sound-card {
+  padding: 10px;
+  overflow: hidden;
+}
+
+.soundImage {
+  float: left;
+  margin-right: 10px;
+}
+
+.soundText {
+  float: left;
+  overflow: hidden;
+}

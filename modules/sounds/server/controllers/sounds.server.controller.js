@@ -8,7 +8,10 @@ var path = require('path'),
   Sound = mongoose.model('Sound'),
   UserStatus = mongoose.model('UserStatus'),
   errorHandler = require(path.resolve('./modules/core/server/controllers/errors.server.controller')),
+  restClient = require('node-rest-client').Client,
   _ = require('lodash');
+var client = new restClient();
+var youtubeMicroserviceUrl = 'http://localhost:5000/broker/list';
 
 
 /**
@@ -32,45 +35,26 @@ exports.read = function(req, res) {
 exports.list = function(req, res) {
   var address = req.query.address;
   var locality = req.query.locality;
-  var lng = req.query.lng;
-  var lat = req.query.lat;
-  var activity = req.query.activity;
+  var lng, lat;
+  if (req.query.lng) {
+    lng = req.query.lng;
+  } else {
+    lng = 37.2619583;
+  }
+  if (req.query.lat) {
+    lat = req.query.lat;
+  } else {
+    lat = -121.9643371;
+  }
+  console.log(lng);
+  console.log(lat);
+  var keywords = req.query.keywords;
 
-  var sounds = [];
-
-  //create search words.
-
-
-  //get list of youtube.
-
-
-  //Add list to response.
-  /*
-  sounds.push({
-    id: 'qr7kRYO29n4',
-    description: 'New York in 1900s.',
-    detailDescription: 'On the road, both carriages and automotives were running.',
-    year: '1900s',
-    location: 'New York'
+  //  var sounds = getContents(lng, lat, keywords);
+  getContents(lng, lat, keywords).then(function(sounds) {
+    //respond list.
+    res.jsonp(sounds);
   });
-  sounds.push({
-    id: 'wHW8IrEMQJ0',
-    description: 'New York in 1930s',
-    detailDescription: '',
-    year: '1930s',
-    location: 'Salt Lake'
-  });
-  sounds.push({
-    id: 'AQJQRGAo3KY',
-    description: 'New York in 1950s',
-    detailDescription: 'There is a lot of cars.',
-    year: '1950s',
-    location: 'Salt Lake'
-  });
-*/
-  sounds = getContents(locality, activity);
-  //respond list.
-  res.jsonp(sounds);
 
 };
 
@@ -161,50 +145,44 @@ function getStartTime(youtubeId) {
   return startTime;
 }
 
-function getContents(locality, activity) {
+function ab2str(buf) {
+  return String.fromCharCode.apply(null, new Uint16Array(buf));
+}
+
+function getContents(lat, lng, keywords) {
   var sounds = [];
-  if (activity === 'RIDING_BICYCLE') {
-    sounds.push({
-      id: 'jznOT028iK0',
-      url: 'https://s3-us-west-1.amazonaws.com/hackathon-prototype/roadrace1.mp3',
-      description: "Attaque d'Alberto Contador au col du Galibier Tour de France 2007",
-      detailDescription: 'On the road, both carriages and automotives were running.',
-      year: '1900s',
-      location: 'New York'
-    });
-    sounds.push({
-      id: 'mG8de1THZXU',
-      url: 'https://s3-us-west-1.amazonaws.com/hackathon-prototype/roadrace2.mp3',
-      description: "RHC - Red Hook Criterium London No.2 Official Race Video",
-      detailDescription: 'On the road, both carriages and automotives were running.',
-      year: '1900s',
-      location: 'New York'
-    });
-  } else {
-    sounds.push({
-      url: 'https://s3-us-west-1.amazonaws.com/hackathon-prototype/soccer1.mp3',
-      id: '9RHdrwLaUDA',
-      description: 'AMAZING FAN GOAL CELEBRATIONS.',
-      detailDescription: 'On the road, both carriages and automotives were running.',
-      year: '1900s',
-      location: 'New York'
-    });
-    sounds.push({
-      id: 'o5_wfHfwyrg',
-      url: 'https://s3-us-west-1.amazonaws.com/hackathon-prototype/soccer2.mp3',
-      description: 'AMAZING FAN GOAL CELEBRATIONS',
-      detailDescription: '',
-      year: '1930s',
-      location: 'Salt Lake'
-    });
-    sounds.push({
-      id: 'JM-z_0GK_8E',
-      url: 'https://s3-us-west-1.amazonaws.com/hackathon-prototype/soccer3.mp3',
-      description: 'New York in 1950s',
-      detailDescription: 'There is a lot of cars.',
-      year: '1950s',
-      location: 'Salt Lake'
-    });
-  }
+  var args = {
+    data: {
+      lng: lng,
+      lat: lat,
+      keywords: keywords
+    },
+    headers: { "Content-Type": "application/json" }
+  };
+
+  var youtubeMicroserviceUrlWithQuery = youtubeMicroserviceUrl + '?lng=' + lng + '&lat=' + lat + '&keywords=' + keywords;
+
+  return new Promise(function(resolve, reject) {
+    client.get(youtubeMicroserviceUrlWithQuery, args,
+      function(data, response) {
+        // parsed response body as js object 
+        var decodedData = ab2str(data);
+        var persedData = JSON.parse(decodedData);
+
+        resolve(persedData.items);
+      });
+  });
+}
+
+function getDummyContents(locality, activity) {
+  var sounds = [];
+  sounds.push({
+    id: 'jznOT028iK0',
+    url: 'https://s3-us-west-1.amazonaws.com/hackathon-prototype/roadrace1.mp3',
+    description: "Attaque d'Alberto Contador au col du Galibier Tour de France 2007",
+    detailDescription: 'On the road, both carriages and automotives were running.',
+    year: '1900s',
+    location: 'New York'
+  });
   return sounds;
 }

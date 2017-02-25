@@ -14,9 +14,8 @@
         url: '/sounds',
         template: '<ui-view/>'
       })
-
     .state('sounds.play', {
-      url: '/play',
+      url: '/play:soundId',
       templateUrl: 'modules/sounds/client/views/sound.client.view.html',
       controller: 'SoundsController',
       controllerAs: 'vm',
@@ -26,6 +25,19 @@
       data: {
         roles: ['user', 'admin'],
         pageTitle: 'Sounds Create'
+      }
+    })
+    .state('sounds.list', {
+      url: '/list',
+      templateUrl: 'modules/sounds/client/views/list-sounds.client.view.html',
+      controller: 'SoundsListController',
+      controllerAs: 'vm',
+      resolve: {
+        soundResolve: newSound
+      },
+      data: {
+        roles: ['user', 'admin'],
+        pageTitle: 'List Events'
       }
     });
   }
